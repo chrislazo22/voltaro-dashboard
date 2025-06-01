@@ -1,4 +1,4 @@
-import { Home, BarChart, Power, Settings, Plug } from "lucide-react";
+import { Home, BarChart, Power, Settings, Zap } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import clsx from "clsx";
 
@@ -18,9 +18,9 @@ export default function Sidebar() {
       <div className="px-6 py-6 border-b border-gray-200">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Plug className="w-5 h-5 text-white" />
+            <Zap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-gray-900">VOLTARO</span>
+          <span className="text-xl font-bold text-gray-900">CHARGELAB</span>
         </div>
       </div>
 
