@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "../layout/DashboardLayout";
 import { chargePointsAPI, type ChargePoint, APIError } from "../services/api";
-import { ChevronDown, Plus, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  Plus,
+  AlertCircle,
+  Play,
+  Square,
+  Loader2,
+} from "lucide-react";
+import { sessionsAPI } from "../services/api";
 
 // Helper function to get status color
 const getStatusColor = (status: string, isOnline: boolean) => {
@@ -47,6 +55,7 @@ export default function ChargersPage() {
   const [locationFilter, setLocationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Fetch charge points on component mount
   useEffect(() => {
@@ -91,6 +100,82 @@ export default function ChargersPage() {
   const locations = Array.from(
     new Set(chargePoints.map((cp) => cp.id.split("-")[0] || "Unknown")),
   );
+
+  // Handle remote start transaction
+  const handleRemoteStart = async (chargePointId: string) => {
+    try {
+      setActionLoading(`start-${chargePointId}`);
+
+      // Use default ID tag for testing
+      const result = await chargePointsAPI.startTransaction(chargePointId, {
+        id_tag: "VALID001", // Test ID tag
+        connector_id: 1, // Default connector
+      });
+
+      if (result.success) {
+        // Show success message
+        alert(`Remote start successful! Status: ${result.status}`);
+        // Refresh charge points to get updated status
+        await fetchChargePoints();
+      } else {
+        alert(`Remote start failed: ${result.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error("Error starting transaction:", err);
+      if (err instanceof APIError) {
+        alert(`Failed to start transaction: ${err.message}`);
+      } else {
+        alert("Failed to start transaction: Network error");
+      }
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle remote stop transaction
+  const handleRemoteStop = async (chargePointId: string) => {
+    try {
+      setActionLoading(`stop-${chargePointId}`);
+
+      // First, get active sessions for this charge point
+      const sessions = await sessionsAPI.getAll({
+        charge_point_id: chargePointId,
+      });
+      const activeSessions = sessions.filter(
+        (session) => session.status === "Active",
+      );
+
+      if (activeSessions.length === 0) {
+        alert("No active transactions found for this charge point");
+        return;
+      }
+
+      // Use the first active transaction (in a real app, you might show a selection)
+      const activeSession = activeSessions[0];
+
+      const result = await chargePointsAPI.stopTransaction(chargePointId, {
+        transaction_id: activeSession.transaction_id,
+      });
+
+      if (result.success) {
+        alert(
+          `Remote stop successful! Status: ${result.status}\nTransaction ID: ${activeSession.transaction_id}`,
+        );
+        await fetchChargePoints();
+      } else {
+        alert(`Remote stop failed: ${result.error || "Unknown error"}`);
+      }
+    } catch (err) {
+      console.error("Error stopping transaction:", err);
+      if (err instanceof APIError) {
+        alert(`Failed to stop transaction: ${err.message}`);
+      } else {
+        alert("Failed to stop transaction: Network error");
+      }
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -271,11 +356,39 @@ export default function ChargersPage() {
                         <button className="text-blue-600 hover:text-blue-900 mr-3">
                           View
                         </button>
-                        <button className="text-green-600 hover:text-green-900 mr-3">
-                          Start
+
+                        {/* Start Button */}
+                        <button
+                          onClick={() => handleRemoteStart(chargePoint.id)}
+                          disabled={
+                            !chargePoint.is_online ||
+                            actionLoading === `start-${chargePoint.id}`
+                          }
+                          className="text-green-600 hover:text-green-900 mr-3 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center space-x-1"
+                        >
+                          {actionLoading === `start-${chargePoint.id}` ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                          <span>Start</span>
                         </button>
-                        <button className="text-red-600 hover:text-red-900">
-                          Stop
+
+                        {/* Stop Button */}
+                        <button
+                          onClick={() => handleRemoteStop(chargePoint.id)}
+                          disabled={
+                            !chargePoint.is_online ||
+                            actionLoading === `stop-${chargePoint.id}`
+                          }
+                          className="text-red-600 hover:text-red-900 disabled:text-gray-400 disabled:cursor-not-allowed flex items-center space-x-1"
+                        >
+                          {actionLoading === `stop-${chargePoint.id}` ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Square className="w-4 h-4" />
+                          )}
+                          <span>Stop</span>
                         </button>
                       </td>
                     </tr>
@@ -289,4 +402,3 @@ export default function ChargersPage() {
     </DashboardLayout>
   );
 }
-

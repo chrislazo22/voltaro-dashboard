@@ -184,4 +184,3 @@ export const idTagsAPI = {
 
 // Export the APIError for error handling in components
 export { APIError };
-
