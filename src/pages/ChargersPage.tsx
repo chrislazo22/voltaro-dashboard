@@ -54,7 +54,6 @@ export default function ChargersPage() {
   const [error, setError] = useState<string | null>(null);
   const [locationFilter, setLocationFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [showAddForm, setShowAddForm] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Fetch charge points on component mount
@@ -194,7 +193,7 @@ export default function ChargersPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900">Chargers</h1>
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => console.log("coming soon")}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
